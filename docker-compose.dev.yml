@@ -7,11 +7,3 @@ services:
       - ./lavalink/application.yml:/opt/Lavalink/application.yml
     ports:
       - "2333:2333"
-  discord-bot:
-    build: .
-    container_name: Ganghoven
-    depends_on:
-      - lavalink
-    environment:
-      - RESTART_DELAY=10s
-      - DOTENV_PATH=.env.prod

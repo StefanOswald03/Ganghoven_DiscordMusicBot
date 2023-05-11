@@ -3,6 +3,8 @@ from discord.ext import commands
 import wavelink
 from wavelink import TrackEventPayload
 
+import settings
+
 
 class Music(commands.Cog):
     vc: wavelink.Player | None = None
@@ -14,7 +16,7 @@ class Music(commands.Cog):
 
     async def setup(self):
         node: wavelink.Node = wavelink.Node(
-            uri="localhost:2333",
+            uri=settings.LAVALINK_URL,
             password="changeme"
         )
         await wavelink.NodePool.connect(client=self.bot, nodes=[node])
