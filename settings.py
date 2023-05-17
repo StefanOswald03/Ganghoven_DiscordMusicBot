@@ -11,3 +11,6 @@ LAVALINK_URL = os.getenv("LAVALINK_URL")
 
 BASE_DIR = pathlib.Path(__file__).parent
 COGS_DIR = BASE_DIR / "cogs"
+
+SPOTIFY_CLIENT = os.getenv("SPOTIFY_CLIENT")
+SPOTIFY_PASSWORD = os.getenv("SPOTIFY_PASSWORD")

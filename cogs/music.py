@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import wavelink
 from wavelink import TrackEventPayload
+from wavelink.ext import spotify
 import settings
 from urllib.parse import urlparse, parse_qs, urlunparse
 
@@ -26,11 +27,12 @@ class Music(commands.Cog):
         self.bot = bot
 
     async def setup(self):
+        sp = spotify.SpotifyClient(client_id=settings.SPOTIFY_CLIENT, client_secret=settings.SPOTIFY_PASSWORD)
         node: wavelink.Node = wavelink.Node(
             uri=settings.LAVALINK_URL,
-            password="changeme"
+            password="changeme",
         )
-        await wavelink.NodePool.connect(client=self.bot, nodes=[node])
+        await wavelink.NodePool.connect(client=self.bot, nodes=[node], spotify=sp)
 
     # region Events
     @commands.Cog.listener()
@@ -67,19 +69,26 @@ class Music(commands.Cog):
                 self.vc = await voice_channel.connect(cls=wavelink.Player)
                 self.music_channel = text_channel
 
-        if search.__len__() == 1 and search[0].__contains__("https://youtube.com") or search[0].__contains__(
+        decoded = spotify.decode_url(search[0])
+
+        if decoded is not None:
+            await self.play_spotify_track(search[0], decoded)
+        elif search.__len__() == 1 and search[0].__contains__("https://youtube.com") or search[0].__contains__(
                 "https://www.youtube.com") and search[0].__contains__("list"):
             search_string = search[0]
             if search_string.__contains__("watch"):
                 search_string = await parse_playlist_url(search_string)
 
-            await self.search_and_play_yt_playlist(search_string)
+            playlist: wavelink.YouTubePlaylist = await wavelink.YouTubePlaylist.search(search_string)
+            await self.play_playlist(playlist)
 
         else:
-            await self.search_and_play_youtube_track(search)
+            chosen_track = await wavelink.YouTubeTrack.search(" ".join(search), return_first=True)
+            await self.play_or_queue_new_track(chosen_track)
 
     @commands.command()
     async def skip(self, ctx):
+        self.has_been_skipped = True
         await self.skip_current_song()
 
     @commands.command()
@@ -104,18 +113,17 @@ class Music(commands.Cog):
     # endregion
 
     # region Methods
-    async def search_and_play_yt_playlist(self, search_string):
-        playlist: wavelink.YouTubePlaylist = await wavelink.YouTubePlaylist.search(search_string)
+    async def play_playlist(self, playlist):
+
         for track in playlist.tracks[1:]:
             self.vc.queue.put(track)
         self.current_track = playlist.tracks[0]
         await self.play_current_track()
 
-    async def search_and_play_youtube_track(self, search):
-        chosen_track = await wavelink.YouTubeTrack.search(" ".join(search), return_first=True)
-        if chosen_track:
+    async def play_or_queue_new_track(self, track):
+        if track:
             if self.current_track is None:
-                self.current_track = chosen_track
+                self.current_track = track
                 await self.play_current_track()
             else:
                 queuing_time = self.current_track.length - self.vc.position
@@ -125,13 +133,13 @@ class Music(commands.Cog):
                 queuing_time = queuing_time / 1000
                 queuing_time_min = int(queuing_time // 60)
                 queuing_time_sec = int(queuing_time % 60)
-                self.vc.queue.put(chosen_track)
+                self.vc.queue.put(track)
 
                 embed = discord.Embed(
                     title="Add Song to Queue"
                 )
-                embed.add_field(name="Interpreter", value=chosen_track.author, inline=False)
-                embed.add_field(name="Title", value=chosen_track.title, inline=False)
+                embed.add_field(name="Interpreter", value=track.author, inline=False)
+                embed.add_field(name="Title", value=track.title, inline=False)
                 embed.add_field(name="Index in Queue", value=f"{self.vc.queue.count}", inline=False)
                 embed.add_field(name="Time Until Played", value=f"{queuing_time_min} min {queuing_time_sec} sec",
                                 inline=False)
@@ -143,7 +151,6 @@ class Music(commands.Cog):
 
     async def skip_current_song(self):
         if not self.vc.queue.is_empty:
-            self.has_been_skipped = True
             self.current_track = self.vc.queue.get()
             await self.play_current_track()
         else:
@@ -155,6 +162,18 @@ class Music(commands.Cog):
             self.vc.queue.clear()
             self.vc = None
             self.music_channel = None
+
+    async def play_spotify_track(self, url, decoded):
+        if decoded == spotify.SpotifySearchType.track:
+            track = await spotify.SpotifyTrack.search(query=url, return_first=True)
+            await self.play_or_queue_new_track(track)
+        elif decoded == spotify.SpotifySearchType.album:
+            tracks = await spotify.SpotifyTrack.search(query=url)
+            await self.play_playlist(tracks)
+        elif decoded == spotify.SpotifySearchType.playlist:
+            tracks = spotify.SpotifyTrack.iterator(query=url)
+            await self.play_playlist(tracks)
+
     # endregion
 
 
