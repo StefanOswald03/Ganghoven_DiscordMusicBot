@@ -27,7 +27,7 @@ class Music(commands.Cog):
         self.bot = bot
 
     async def setup(self):
-        sp = spotify.SpotifyClient(client_id=settings.SPOTIFY_CLIENT, client_secret=settings.SPOTIFY_PASSWORD)
+        sp = spotify.SpotifyClient(client_id="sq31qck14rmvhakwusjra56tz", client_secret='wmX*D@F"6:g2_Jmx')
         node: wavelink.Node = wavelink.Node(
             uri=settings.LAVALINK_URL,
             password="changeme",
@@ -66,8 +66,9 @@ class Music(commands.Cog):
             voice_channel = ctx.message.author.voice.channel
             text_channel = ctx.message.channel
             if voice_channel and text_channel:
-                self.vc = await voice_channel.connect(cls=wavelink.Player)
                 self.music_channel = text_channel
+                if self.vc is None:
+                    self.vc = await voice_channel.connect(cls=wavelink.Player)
 
         decoded = spotify.decode_url(search[0])
 
@@ -164,13 +165,17 @@ class Music(commands.Cog):
             self.music_channel = None
 
     async def play_spotify_track(self, url, decoded):
-        if decoded == spotify.SpotifySearchType.track:
-            track = await spotify.SpotifyTrack.search(query=url, return_first=True)
-            await self.play_or_queue_new_track(track)
-        elif decoded == spotify.SpotifySearchType.album:
+        if decoded['type'] == spotify.SpotifySearchType.track:
+            try:
+                track = await spotify.SpotifyTrack.search(query=url, return_first=True)
+                await self.play_or_queue_new_track(track)
+            except Exception as e:
+                print(e)
+
+        elif decoded['type'] == spotify.SpotifySearchType.album:
             tracks = await spotify.SpotifyTrack.search(query=url)
             await self.play_playlist(tracks)
-        elif decoded == spotify.SpotifySearchType.playlist:
+        elif decoded['type'] == spotify.SpotifySearchType.playlist:
             tracks = spotify.SpotifyTrack.iterator(query=url)
             await self.play_playlist(tracks)
 
