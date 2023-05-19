@@ -1,3 +1,5 @@
+from typing import Any
+
 import discord
 from discord.ext import commands
 import wavelink
@@ -5,6 +7,7 @@ from wavelink import TrackEventPayload
 from wavelink.ext import spotify
 import settings
 from urllib.parse import urlparse, parse_qs, urlunparse
+from discord.ui import Button, View
 
 
 async def parse_playlist_url(search_string):
@@ -27,7 +30,7 @@ class Music(commands.Cog):
         self.bot = bot
 
     async def setup(self):
-        sp = spotify.SpotifyClient(client_id="sq31qck14rmvhakwusjra56tz", client_secret='wmX*D@F"6:g2_Jmx')
+        sp = spotify.SpotifyClient(client_id=settings.SPOTIFY_CLIENT, client_secret=settings.SPOTIFY_PASSWORD)
         node: wavelink.Node = wavelink.Node(
             uri=settings.LAVALINK_URL,
             password="changeme",
@@ -41,19 +44,29 @@ class Music(commands.Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: TrackEventPayload):
-        await self.music_channel.send(f"{payload.track.title} started playing")
+        skip_button = Button(label="Skip Button")
+
+        async def button_callback(interaction):
+            self.has_been_skipped = True
+            await self.skip_current_song()
+            await interaction.response.send_message("")
+
+        skip_button.callback = button_callback
+        view = View()
+        view.add_item(skip_button)
+        await self.music_channel.send(content=f"{payload.track.title} started playing", view=view)
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: TrackEventPayload):
         if self.vc is not None:
-            await self.music_channel.send(f"{payload.track.title} finished: {payload.reason}")
-            if self.vc.queue.is_empty:
+            # await self.music_channel.send(f"{payload.track.title} finished: {payload.reason}
+            if self.has_been_skipped is True:
+                self.has_been_skipped = False
+            elif self.vc.queue.is_empty:
                 self.current_track = None
                 await self.disconnect_from_voice_channel()
-            elif self.has_been_skipped is False:
-                await self.skip_current_song()
             else:
-                self.has_been_skipped = False
+                await self.skip_current_song()
 
     # endregion
 
@@ -155,7 +168,7 @@ class Music(commands.Cog):
             self.current_track = self.vc.queue.get()
             await self.play_current_track()
         else:
-            self.music_channel.send("No track remaining in the queue!")
+            await self.music_channel.send("No track remaining in the queue!")
 
     async def disconnect_from_voice_channel(self):
         if self.vc:
@@ -186,3 +199,14 @@ async def setup(bot):
     music_bot = Music(bot)
     await bot.add_cog(music_bot)
     await music_bot.setup()
+
+
+class SkipButton(Button):
+    bot: Music = None
+
+    def __init__(self, bot: Music):
+        self.bot = bot
+        super().__init__(label="Skip Song!", style=discord.ButtonStyle.green)
+
+    async def callback(self, interaction):
+        await self.bot.skip_current_song()
