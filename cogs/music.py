@@ -44,16 +44,15 @@ class Music(commands.Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: TrackEventPayload):
-        skip_button = Button(label="Skip Button")
+        skip_button = SkipButton(self)
+        pause_resume_button = Pause_Resume_Button(self)
+        stop_botton = Stop_Button(self)
 
-        async def button_callback(interaction):
-            self.has_been_skipped = True
-            await self.skip_current_song()
-            await interaction.response.send_message("")
-
-        skip_button.callback = button_callback
         view = View()
+        view.add_item(pause_resume_button)
         view.add_item(skip_button)
+        view.add_item(stop_botton)
+
         await self.music_channel.send(content=f"{payload.track.title} started playing", view=view)
 
     @commands.Cog.listener()
@@ -206,7 +205,38 @@ class SkipButton(Button):
 
     def __init__(self, bot: Music):
         self.bot = bot
-        super().__init__(label="Skip Song!", style=discord.ButtonStyle.green)
+        super().__init__(emoji="⏭️")
 
     async def callback(self, interaction):
+        self.bot.has_been_skipped = True
         await self.bot.skip_current_song()
+        await interaction.response.send_message("Skipped!", silent=True, delete_after=0.0001)
+
+
+class Pause_Resume_Button(Button):
+    bot: Music = None
+
+    def __init__(self, bot: Music):
+        self.bot = bot
+        super().__init__(emoji="⏯️")
+
+    async def callback(self, interaction):
+        if self.bot.vc.is_paused():
+            await self.bot.vc.resume()
+        else:
+            await self.bot.vc.pause()
+
+        await interaction.response.send_message("Done!", silent=True, delete_after=0.0001)
+
+
+class Stop_Button(Button):
+    bot: Music = None
+
+    def __init__(self, bot: Music):
+        self.bot = bot
+        super().__init__(emoji="⏹️")
+
+    async def callback(self, interaction):
+        await self.bot.disconnect_from_voice_channel()
+
+        await interaction.response.send_message("Done!", silent=True, delete_after=0.0001)
