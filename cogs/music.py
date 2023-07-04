@@ -215,7 +215,7 @@ class SkipButton(Button):
     async def callback(self, interaction):
         self.bot.has_been_skipped = True
         await self.bot.skip_current_song()
-        await interaction.response.send_message("Skipped!", silent=True, delete_after=0.0001)
+        await interaction.response.send_message("Track Skipped!", silent=True, delete_after=0.0001)
 
 
 class Pause_Resume_Button(Button):
@@ -225,13 +225,17 @@ class Pause_Resume_Button(Button):
         self.bot = bot
         super().__init__(emoji="⏯️")
 
+    response = ''
+
     async def callback(self, interaction):
         if self.bot.vc.is_paused():
+            response = 'Resume!'
             await self.bot.vc.resume()
         else:
+            response = 'Pause!'
             await self.bot.vc.pause()
 
-        await interaction.response.send_message("Done!", silent=True, delete_after=0.0001)
+        await interaction.response.send_message(response, silent=True)
 
 
 class Stop_Button(Button):
@@ -244,4 +248,4 @@ class Stop_Button(Button):
     async def callback(self, interaction):
         await self.bot.disconnect_from_voice_channel()
 
-        await interaction.response.send_message("Done!", silent=True, delete_after=0.0001)
+        await interaction.response.send_message('Player Stopped!', silent=True)
