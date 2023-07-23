@@ -97,10 +97,11 @@ class Music(commands.Cog):
 
         else:
             chosen_track = await wavelink.YouTubeTrack.search(" ".join(search), return_first=True)
-            print('0', chosen_track.title)
             await self.play_or_queue_new_track(chosen_track)
 
-    @commands.command()
+    @commands.command(
+        aliases=['s']
+    )
     async def skip(self, ctx):
         self.has_been_skipped = True
         await self.skip_current_song()
@@ -115,8 +116,7 @@ class Music(commands.Cog):
 
     @commands.command()
     async def stop(self, ctx):
-        self.vc.queue.clear()
-        await self.vc.stop()
+        await self.disconnect_from_voice_channel()
 
     @commands.command(
         aliases=['dc']
@@ -135,14 +135,11 @@ class Music(commands.Cog):
         await self.play_current_track()
 
     async def play_or_queue_new_track(self, track):
-        print('1', track.title)
         if track:
             if self.current_track is None:
-                print('2', track.title)
                 self.current_track = track
                 await self.play_current_track()
             else:
-                print('3', track.title)
                 queuing_time = self.current_track.length - self.vc.position
                 for t in self.vc.queue:
                     queuing_time = queuing_time + t.length
@@ -150,7 +147,6 @@ class Music(commands.Cog):
                 queuing_time = queuing_time / 1000
                 queuing_time_min = int(queuing_time // 60)
                 queuing_time_sec = int(queuing_time % 60)
-                print('4', track.title)
                 self.vc.queue.put(track)
 
                 embed = discord.Embed(
@@ -177,6 +173,7 @@ class Music(commands.Cog):
     async def disconnect_from_voice_channel(self):
         if self.vc:
             await self.vc.disconnect()
+            self.current_track = None
             self.vc.queue.clear()
             self.vc = None
             self.music_channel = None
