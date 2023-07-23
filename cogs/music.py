@@ -67,6 +67,13 @@ class Music(commands.Cog):
             else:
                 await self.skip_current_song()
 
+    # @commands.Cog.listener()
+    # async def on_command_error(self, ctx, error):
+    #     if error is wavelink.NoTracksError:
+    #         await ctx.send("No Track Found!")
+    #     else:
+    #         raise Exception(error)
+
     # endregion
 
     # region Commands
