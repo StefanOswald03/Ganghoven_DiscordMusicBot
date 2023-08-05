@@ -67,12 +67,12 @@ class Music(commands.Cog):
             else:
                 await self.skip_current_song()
 
-    # @commands.Cog.listener()
-    # async def on_command_error(self, ctx, error):
-    #     if error is wavelink.NoTracksError:
-    #         await ctx.send("No Track Found!")
-    #     else:
-    #         raise Exception(error)
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
+        if error is wavelink.NoTracksError:
+            await ctx.send("No Track Found!")
+        else:
+            raise Exception(error)
 
     # endregion
 
@@ -103,8 +103,13 @@ class Music(commands.Cog):
             await self.play_playlist(playlist)
 
         else:
-            chosen_track = await wavelink.YouTubeTrack.search(" ".join(search), return_first=True)
-            await self.play_or_queue_new_track(chosen_track)
+            try:
+                chosen_track = await wavelink.YouTubeTrack.search(" ".join(search), return_first=True)
+                await self.play_or_queue_new_track(chosen_track)
+            except wavelink.NoTracksError as ex:
+                print(ex)
+                await self.music_channel.send("No Track found!")
+                await self.disconnect_from_voice_channel()
 
     @commands.command(
         aliases=['s']
