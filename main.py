@@ -2,6 +2,7 @@ import settings
 import discord
 from discord.ext import commands
 
+logger = settings.logging.getLogger("bot")
 
 def run():
     intents = discord.Intents.default()
@@ -10,6 +11,7 @@ def run():
 
     @bot.event
     async def on_ready():
+        logger.info(f"User: {bot.user} (ID: {bot.user.id})")
         print(bot.user)
         print(bot.user.id)
 
@@ -29,7 +31,7 @@ def run():
     async def reload(etx, cog: str):
         await bot.reload_extension(f"cogs.{cog.lower()}")
 
-    bot.run(settings.DISCORD_API_SECRET)
+    bot.run(settings.DISCORD_API_SECRET, root_logger=True)
 
 
 if __name__ == '__main__':
