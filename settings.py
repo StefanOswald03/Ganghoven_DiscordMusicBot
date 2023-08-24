@@ -9,6 +9,8 @@ load_dotenv(dotenv_path)
 
 DISCORD_API_SECRET = os.getenv("DISCORD_API_TOKEN")
 LAVALINK_URL = os.getenv("LAVALINK_URL")
+MUSIXMATCH_API_KEY = os.getenv("MUSIXMATCH_API_KEY")
+
 
 BASE_DIR = pathlib.Path(__file__).parent
 COGS_DIR = BASE_DIR / "cogs"

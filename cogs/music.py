@@ -8,6 +8,7 @@ from wavelink.ext import spotify
 import settings
 from urllib.parse import urlparse, parse_qs, urlunparse
 from discord.ui import Button, View
+import requests
 
 
 async def parse_playlist_url(search_string):
@@ -25,6 +26,7 @@ class Music(commands.Cog):
     current_track = None
     music_channel = None
     has_been_skipped = False
+    base_musixmatch_url = "https://api.musixmatch.com/ws/1.1/"
 
     def __init__(self, bot):
         self.bot = bot
@@ -135,6 +137,22 @@ class Music(commands.Cog):
     )
     async def disconnect(self, ctx):
         await self.disconnect_from_voice_channel()
+
+    @commands.command(
+        aliases=['l']
+    )
+    async def lyrik(self, ctx, title, artist):
+        url = f"{base_musixmatch_url}matcher.lyrics.get?q_track={title}&q_artist={artist}&apikey{settings.MUSIXMATCH_API_KEY}"
+        response = requests.get(url)
+
+        # Überprüfe, ob die Anfrage erfolgreich war (Statuscode 200)
+        if response.status_code == 200:
+            print('GET-Anfrage war erfolgreich!')
+            print('Antwortinhalt:')
+            print(response.text)
+        else:
+            print(f'Fehler: Statuscode {response.status_code}')
+
 
     # endregion
 
