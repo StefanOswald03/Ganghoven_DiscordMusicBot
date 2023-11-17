@@ -8,7 +8,9 @@ from wavelink.ext import spotify
 import settings
 from urllib.parse import urlparse, parse_qs, urlunparse
 from discord.ui import Button, View
-import requests
+
+
+# import requests
 
 
 async def parse_playlist_url(search_string):
