@@ -29,6 +29,7 @@ class Music(commands.Cog):
     music_channel = None
     has_been_skipped = False
     base_musixmatch_url = "https://api.musixmatch.com/ws/1.1/"
+    logger = settings.logging.getLogger("bot")
 
     def __init__(self, bot):
         self.bot = bot
@@ -45,6 +46,7 @@ class Music(commands.Cog):
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, node: wavelink.Node):
         print(f"{node} is ready")
+        self.logger.info(f"{node} is ready")
 
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: TrackEventPayload):
@@ -56,13 +58,14 @@ class Music(commands.Cog):
         view.add_item(pause_resume_button)
         view.add_item(skip_button)
         view.add_item(stop_botton)
-
+        self.logger.info(f"{payload.track.title} started playing")
         await self.music_channel.send(content=f"{payload.track.title} started playing", view=view)
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: TrackEventPayload):
         if self.vc is not None:
             # await self.music_channel.send(f"{payload.track.title} finished: {payload.reason}
+            self.logger.info(f"{payload.track.title} finished: {payload.reason}")
             if self.has_been_skipped is True:
                 self.has_been_skipped = False
             elif self.vc.queue.is_empty:
@@ -75,7 +78,9 @@ class Music(commands.Cog):
     async def on_command_error(self, ctx, error):
         if error is wavelink.NoTracksError:
             await ctx.send("No Track Found!")
+            self.logger.error(f"No Track Found!")
         else:
+            self.logger.error(error)
             raise Exception(error)
 
     # endregion
