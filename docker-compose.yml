@@ -1,8 +1,8 @@
-version: '3.3'
+version: "3.3"
 
 services:
   lavalink:
-    image: "fredboat/lavalink:latest"
+    image: "fredboat/lavalink:v3-update-lp-alpine"
     volumes:
       - ./lavalink/application.yml:/opt/Lavalink/application.yml
     ports:
